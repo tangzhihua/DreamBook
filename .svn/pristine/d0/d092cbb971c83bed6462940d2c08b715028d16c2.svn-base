@@ -1,0 +1,81 @@
+package cn.retech.adapter;
+
+import java.util.List;
+
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.ImageView;
+import android.widget.TextView;
+import cn.retech.activity.R;
+import cn.retech.domainbean_model.booklist_in_bookstores.BookInfo;
+import cn.retech.toolutils.ToolsFunctionForThisProgect;
+
+import com.nostra13.universalimageloader.core.ImageLoader;
+import com.nostra13.universalimageloader.core.assist.SimpleImageLoadingListener;
+
+public class BookStoreAdapter extends BaseAdapter {
+	private List<BookInfo> bookInfoList;
+	private Context mContext;
+
+	public BookStoreAdapter(Context context, List<BookInfo> bookInfoList) {
+		this.bookInfoList = bookInfoList;
+		this.mContext = context;
+	}
+
+	@Override
+	public int getCount() {
+		return bookInfoList.size();
+	}
+
+	@Override
+	public Object getItem(int position) {
+		return bookInfoList.get(position);
+	}
+
+	@Override
+	public long getItemId(int position) {
+		return position;
+	}
+
+	@Override
+	public View getView(int position, View convertView, ViewGroup parent) {
+		LayoutInflater inflaterInstance = LayoutInflater.from(mContext);
+		convertView = inflaterInstance.inflate(R.layout.bookcell_layout, null);
+		final BookItem holder = new BookItem(convertView);
+
+		ImageLoader.getInstance().loadImage(bookInfoList.get(position).getThumbnail(), new SimpleImageLoadingListener() {
+
+			@Override
+			public void onLoadingComplete(String imageUri, View view, Bitmap loadedImage) {
+				holder.book_imageView.setImageBitmap(loadedImage);
+			}
+		});
+
+		holder.booksize_textView.setText(ToolsFunctionForThisProgect.bytesToKbOrMb(Long.parseLong(bookInfoList.get(position).getSize())));
+
+		holder.bookname_textView.setText(bookInfoList.get(position).getName());
+		convertView.setTag(bookInfoList.get(position));
+		return convertView;
+	}
+
+	private static final class BookItem {
+		private BookItem(View view) {
+			bookname_textView = (TextView) view.findViewById(R.id.bookname_textView);
+			booksize_textView = (TextView) view.findViewById(R.id.booksize_textView);
+			book_imageView = (ImageView) view.findViewById(R.id.book_imageView);
+
+		}
+
+		// 书籍名称
+		private TextView bookname_textView;
+		// 书籍图片
+		private ImageView book_imageView;
+		// 书籍zip资源包大小, 以byte为单位.
+		private TextView booksize_textView;
+	}
+
+}

@@ -1,0 +1,121 @@
+package cn.retech.domainbean_model.local_book_list;
+
+import java.util.Observable;
+
+import cn.retech.domainbean_model.booklist_in_bookstores.BookInfo;
+import cn.retech.domainbean_model.login.LogonNetRespondBean;
+
+public final class LocalBook extends Observable {
+	// 书籍状态枚举
+	public static enum BookStateEnum {
+
+		// 未付费(只针对收费的书籍, 如果是免费的书籍, 会直接到下一个状态.
+		kBookStateEnum_Unpaid,
+		// 支付中....
+		kBookStateEnum_Paiding,
+		// 已付费(已付费的书籍可以直接下载了)
+		kBookStateEnum_Paid,
+		// 正在下载中...
+		kBookStateEnum_Downloading,
+		// 暂停(也就是未下载完成, 可以进行断电续传)
+		kBookStateEnum_Pause,
+		// 未安装(已经下载完成, 还未完成安装)
+		kBookStateEnum_NotInstalled,
+		// 解压书籍zip资源包中....
+		kBookStateEnum_Unziping,
+		// 已安装(已经解压开的书籍, 可以正常阅读了)
+		kBookStateEnum_Installed,
+		// 有可以更新的内容
+		kBookStateEnum_Update
+	};
+
+	public LocalBook(BookInfo bookInfo) {
+		this.bookInfo = bookInfo;
+	}
+
+	// 书籍信息(从服务器获取的, 这个属性在初始化 LocalBook 时被赋值, 之后就是只读数据了)
+	private BookInfo bookInfo;
+
+	public BookInfo getBookInfo() {
+		return bookInfo;
+	}
+
+	public void setBookInfo(BookInfo bookInfo) {
+		this.bookInfo = bookInfo;
+	}
+
+	// 下载进度, 100% 数值是 1, 外部可以这样计算完成百分比 downloadProgress * 100
+	private double downloadProgress;
+
+	// 书籍状态
+	private BookStateEnum bookStateEnum;
+
+	// 书籍下载解压过程中, 如果发生错误时, 通知控制层的块
+	// private BookDownloadErrorBlock bookDownloadErrorBlock;
+
+	public BookStateEnum getBookStateEnum() {
+		return bookStateEnum;
+	}
+
+	public void setBookStateEnum(BookStateEnum bookStateEnum) {
+		this.bookStateEnum = bookStateEnum;
+	}
+
+	// 书籍保存文件夹路径
+	private String bookSaveDirPath;
+
+	public String getBookSaveDirPath() {
+		return bookSaveDirPath;
+	}
+
+	// 从书城中, 点击一本还未下载的书籍时, 这本书籍会被加入
+	// "本地书籍列表(在 GlobalDataCacheForMemorySingleton->localBookList 中保存)"
+	// 目前有两个需求:
+	// 1) 当A账户登录书城下载书籍时, 如果此时A账户退出了(或者被B账户替换了), 那么就要暂停正在进行下载的所有跟A账户绑定的书籍;
+	// 这里考虑的一点是, 如果A/B账户切换时, 当前账户是希望独享下载网速的.
+	// 但是, 对于跟 "公共账户" 绑定的书籍, 是不需要停止下载的.
+	// 2) 已经存在于 "本地书籍列表" 中的未下载完成的书籍, 再次进行断点续传时, 需要将跟这本书绑定的账号信息传递给服务器,
+	// 才能获取到最新的书籍下载地址.
+	// 因为服务器为了防止盗链, 所以每次断点续传时, 都需要重新获取目标书籍的最新下载地址.
+	private LogonNetRespondBean bindAccount;
+
+	public LogonNetRespondBean getBindAccount() {
+		return bindAccount;
+	}
+
+	public void setBindAccount(LogonNetRespondBean bindAccount) {
+		this.bindAccount = bindAccount;
+	}
+
+	// 当前书籍所归属的本地文件夹
+	private String folder;
+
+	public String getFolder() {
+		return folder;
+	}
+
+	public void setFolder(String folder) {
+		this.folder = folder;
+	}
+
+	// 设置当前书籍最新的版本(可以通过书籍的版本来确定服务器是否有可以下载的更新包)
+	public void setBookVersion(String bookLatestVersion) {
+
+	};
+
+	// 开始下载一本书籍(为了防止盗链, 所以每次下载书籍时的URL都是一次性的)
+	public boolean startDownloadBookWithURLString(String urlString) {
+		return true;
+	}
+
+	// 停止下载一本书籍
+	public void stopDownloadBook() {
+
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		return bookInfo.getContent_id().equals(((LocalBook) o).bookInfo.getCategoryid());
+	}
+
+}

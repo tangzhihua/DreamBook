@@ -1,0 +1,5 @@
+package cn.retech.global_data_cache;
+
+public class LocalCacheDataPathConstant {
+
+}

@@ -1,0 +1,69 @@
+package cn.retech.custom_control;
+
+import java.util.List;
+
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.util.AttributeSet;
+import android.util.DisplayMetrics;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.HorizontalScrollView;
+import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.TextView;
+import cn.retech.activity.R;
+
+public class TabNavigation extends HorizontalScrollView implements OnClickListener {
+  private List list;
+  private Context context;
+  private TextView tabCursor;
+  private LinearLayout tabNavigationLayout;
+
+  public TabNavigation(Context context) {
+    super(context);
+    this.context = context;
+  }
+
+  public TabNavigation(Context context, AttributeSet attrs) {
+    super(context, attrs);
+    this.context = context;
+    this.setHorizontalScrollBarEnabled(false);
+  }
+
+  @Override
+  public void onClick(View v) {
+    tabCursor.animate().x(v.getX());
+  }
+
+  /**
+   * @param list the list to set
+   */
+  public void setList(List list) {
+    this.list = list;
+
+    LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+    layoutInflater.inflate(R.layout.tab_navigation_layout, this);
+
+    tabNavigationLayout = (LinearLayout) findViewById(R.id.tab_navigation_radioGroup);
+    DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+    int itemWidth = displayMetrics.widthPixels / 3;
+    LayoutParams layoutParams = new LayoutParams(itemWidth, LayoutParams.MATCH_PARENT);
+    for (int i = 0; i < list.size(); i++) {
+      RadioButton button = new RadioButton(context);
+      button.setText("类别" + i);
+      button.setGravity(Gravity.LEFT);
+      Bitmap nullBitmap = null;
+      button.setButtonDrawable(new BitmapDrawable(nullBitmap));
+      button.setOnClickListener(this);
+      tabNavigationLayout.addView(button, layoutParams);
+    }
+
+    tabCursor = (TextView) findViewById(R.id.tab_cursor_textView);
+    tabCursor.setWidth(itemWidth);
+    tabCursor.setX(0);
+  }
+}

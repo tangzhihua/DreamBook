@@ -1,0 +1,49 @@
+package cn.retech.adapter;
+
+import java.util.List;
+
+import android.content.Context;
+import android.os.Bundle;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentPagerAdapter;
+import cn.retech.activity.BookListFragment;
+import cn.retech.domainbean_model.book_categories.BookCategory;
+
+public class MyFragmentPagerAdapter extends FragmentPagerAdapter {
+  private Context mContext;
+  private List<BookCategory> mBookCategories;
+
+  public MyFragmentPagerAdapter(FragmentManager fm, Context context, List<BookCategory> mBookCategories) {
+    super(fm);
+    this.mContext = context;
+    this.mBookCategories = mBookCategories;
+  }
+
+  @Override
+  public int getCount() {
+    if (null != mBookCategories) {
+      return mBookCategories.size();
+    }
+
+    return 0;
+  }
+
+  @Override
+  public Fragment getItem(int position) {
+    BookCategory bookCategory = mBookCategories.get(position);
+    Bundle bundle = new Bundle();
+    bundle.putString("identifier", bookCategory.getIdentifier());
+
+    return Fragment.instantiate(mContext, BookListFragment.class.getName(), bundle);
+  }
+
+  /**
+   * @param mBookCategories the mBookCategories to set
+   */
+  public void setmBookCategories(List<BookCategory> mBookCategories) {
+    this.mBookCategories = mBookCategories;
+
+    this.notifyDataSetChanged();
+  }
+}

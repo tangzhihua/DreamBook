@@ -1,0 +1,83 @@
+package cn.retech.activity;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import cn.retech.custom_control.TabNavigation;
+
+import android.app.ActionBar;
+import android.app.Activity;
+import android.os.Bundle;
+import android.view.MenuItem;
+import cn.retech.custom_control.ICustomControlDelegate;
+import cn.retech.custom_control.PageTitle;
+
+public class PubliceBookStoreActivity extends Activity implements ICustomControlDelegate {
+
+  @Override
+  public void customControlOnAction(Object contorl, Object actionTypeEnum) {
+    // TODO Auto-generated method stub
+
+  }
+
+  @Override
+  public boolean onOptionsItemSelected(MenuItem item) {
+    // TODO Auto-generated method stub
+    return super.onOptionsItemSelected(item);
+  }
+
+  @Override
+  protected void onCreate(Bundle savedInstanceState) {
+    super.onCreate(savedInstanceState);
+    ActionBar actionBar = getActionBar();
+    actionBar.setDisplayShowCustomEnabled(true);
+    actionBar.setCustomView(new PageTitle(this));
+    actionBar.setDisplayShowHomeEnabled(false);
+
+    setContentView(R.layout.activity_public_book_store);
+    TabNavigation tabNavigation = (TabNavigation) findViewById(R.id.tabNavigation);
+    List list = new ArrayList();
+    list.add("abc");
+    list.add("abc");
+    list.add("abc");
+    list.add("abc");
+    tabNavigation.setList(list);
+  }
+
+  @Override
+  protected void onDestroy() {
+    // TODO Auto-generated method stub
+    super.onDestroy();
+  }
+
+  @Override
+  protected void onPause() {
+    // TODO Auto-generated method stub
+    super.onPause();
+  }
+
+  @Override
+  protected void onRestart() {
+    // TODO Auto-generated method stub
+    super.onRestart();
+  }
+
+  @Override
+  protected void onResume() {
+    // TODO Auto-generated method stub
+    super.onResume();
+  }
+
+  @Override
+  protected void onStart() {
+    // TODO Auto-generated method stub
+    super.onStart();
+  }
+
+  @Override
+  protected void onStop() {
+    // TODO Auto-generated method stub
+    super.onStop();
+  }
+
+}

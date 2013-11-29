@@ -1,0 +1,300 @@
+package cn.retech.activity;
+
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemLongClickListener;
+import android.widget.GridView;
+import android.widget.TextView;
+import android.widget.Toast;
+import cn.retech.adapter.BookStoreAdapter;
+import cn.retech.domainbean_model.booklist_in_bookstores.BookInfo;
+import cn.retech.domainbean_model.booklist_in_bookstores.BookListInBookstoresNetRequestBean;
+import cn.retech.domainbean_model.booklist_in_bookstores.BookListInBookstoresNetRespondBean;
+import cn.retech.domainbean_model.get_book_download_url.GetBookDownloadUrlNetRequestBean;
+import cn.retech.domainbean_model.get_book_download_url.GetBookDownloadUrlNetRespondBean;
+import cn.retech.domainbean_model.local_book_list.LocalBook;
+import cn.retech.domainbean_model.local_book_list.LocalBookList;
+import cn.retech.domainbean_model.login.LogonNetRespondBean;
+import cn.retech.global_data_cache.GlobalDataCacheForMemorySingleton;
+import cn.retech.my_domainbean_engine.domainbean_network_engine_singleton.DomainBeanNetworkEngineSingleton;
+import cn.retech.my_domainbean_engine.domainbean_network_engine_singleton.DomainBeanNetworkEngineSingleton.NetRequestIndex;
+import cn.retech.my_domainbean_engine.domainbean_network_engine_singleton.IDomainBeanNetRespondListener;
+import cn.retech.my_domainbean_engine.net_error_handle.NetErrorBean;
+import cn.retech.toolutils.DebugLog;
+import cn.retech.toolutils.ToolsFunctionForThisProgect;
+
+public class MyFirstActivity extends Activity {
+	private final String TAG = this.getClass().getSimpleName();
+
+	private NetRequestIndex netRequestIndexForLogin = new NetRequestIndex();
+	private NetRequestIndex netRequestIndexForBookCategories = new NetRequestIndex();
+	private NetRequestIndex netRequestIndexForBookListInBookstores = new NetRequestIndex();
+	private NetRequestIndex netRequestIndexForGetBookDownloadUrl = new NetRequestIndex();
+
+	private TextView publicBookstoreTextView;
+	private TextView privateBookstoreTextView;
+	private TextView quiteLoginTextView;
+	private GridView bookstoreGridView;
+
+	// 书城图书列表(完成本地图书列表和从服务器新获取的图书列表进行了数据同步)
+	private LocalBookList bookList = new LocalBookList();
+
+	private BookStoreAdapter bookStoreAdapter;
+
+	private void requestBookDownlaodUrl(final String contentID, final LogonNetRespondBean bindAccount) {
+		GetBookDownloadUrlNetRequestBean netRequestBean = new GetBookDownloadUrlNetRequestBean(contentID, bindAccount);
+
+		DomainBeanNetworkEngineSingleton.getInstance.requestDomainProtocol(netRequestIndexForGetBookDownloadUrl, netRequestBean, new IDomainBeanNetRespondListener() {
+
+			@Override
+			public void onFailure(NetErrorBean error) {
+				DebugLog.e(TAG, error.toString());
+			}
+
+			@Override
+			public void onSuccess(Object respondDomainBean) {
+				GetBookDownloadUrlNetRespondBean getBookDownloadUrlNetRespondBean = (GetBookDownloadUrlNetRespondBean) respondDomainBean;
+				LocalBook book = bookList.bookByContentID(contentID);
+				book.startDownloadBookWithURLString(getBookDownloadUrlNetRespondBean.getBookDownloadUrl());
+			}
+		});
+	}
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		DebugLog.i(TAG, "onCreate");
+		super.onCreate(savedInstanceState);
+		getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);
+		requestWindowFeature(Window.FEATURE_NO_TITLE);
+		setContentView(R.layout.activity_my_first);
+
+		publicBookstoreTextView = (TextView) findViewById(R.id.public_bookstore_textView);
+		publicBookstoreTextView.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				Intent intent = new Intent();
+				intent.setClass(MyFirstActivity.this, PubliceBookStoreActivity.class);
+				startActivity(intent);
+			}
+		});
+
+		privateBookstoreTextView = (TextView) findViewById(R.id.private_bookstore_textView);
+		privateBookstoreTextView.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				Intent intent = new Intent();
+				intent.setClass(MyFirstActivity.this, PrivateBookStoreActivity.class);
+				startActivityForResult(intent, 1);
+			}
+		});
+
+		bookstoreGridView = (GridView) findViewById(R.id.bookstore_gridView);
+		loadLocalBookList();
+		// 设置监听
+		bookstoreGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+			@Override
+			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+				final LocalBook book = bookList.get(position);
+				switch (book.getBookStateEnum()) {
+				case kBookStateEnum_Unpaid:// 未付费(只针对收费的书籍, 如果是免费的书籍, 会直接到下一个状态.
+
+					break;
+				case kBookStateEnum_Paiding:// 支付中....
+
+					break;
+				case kBookStateEnum_Paid: // 已付费(已付费的书籍可以直接下载了)
+					final LogonNetRespondBean bindAccount = new LogonNetRespondBean();
+					bindAccount.setUsername("public");
+					bindAccount.setPassword("pwpublic");
+					book.setBindAccount(bindAccount);
+					requestBookDownlaodUrl(book.getBookInfo().getContent_id(), bindAccount);
+					break;
+				case kBookStateEnum_Downloading:// 正在下载中...
+					book.stopDownloadBook();
+
+					break;
+				case kBookStateEnum_Pause:// 暂停(也就是未下载完成, 可以进行断点续传)
+					requestBookDownlaodUrl(book.getBookInfo().getContent_id(), book.getBindAccount());
+					break;
+				case kBookStateEnum_NotInstalled:// 未安装(已经下载完成, 还未完成安装)
+
+					break;
+				case kBookStateEnum_Unziping:// 解压书籍zip资源包中....
+					Toast.makeText(MyFirstActivity.this, book.getBookInfo().getName() + "", Toast.LENGTH_SHORT).show();
+					break;
+				case kBookStateEnum_Installed:// 已安装(已经解压开的书籍, 可以正常阅读了)
+
+					break;
+				case kBookStateEnum_Update:// 有可以更新的内容
+
+					break;
+				default:
+
+					break;
+				}
+			}
+
+		});
+		bookstoreGridView.setOnItemLongClickListener(new OnItemLongClickListener() {
+
+			@Override
+			public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+
+				final LocalBook book = bookList.get(position);
+				switch (book.getBookStateEnum()) {
+				case kBookStateEnum_Downloading:// 正在下载中...
+					// 正在下载中的书籍需要先暂停
+					book.stopDownloadBook();
+					break;
+				default:
+					break;
+				}
+				// 长按提示删除书籍，需要先将书籍从本地缓存中删除
+				GlobalDataCacheForMemorySingleton.getInstance.getLocalBookList().removeBook(book);
+				Toast.makeText(MyFirstActivity.this, "delete " + book.getBookInfo().getName(), Toast.LENGTH_SHORT).show();
+				bookStoreAdapter.notifyDataSetChanged();
+				return false;
+			}
+		});
+
+		quiteLoginTextView = (TextView) findViewById(R.id.quite_login_textView);
+		quiteLoginTextView.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				showDialogQuite();
+			}
+		});
+		showLoginQuiteByGlobalDataCache();
+		// testLogon();
+
+	}
+
+	// 加载本地书籍列表
+	private void loadLocalBookList() {
+		// 从缓存中获取已经下载的书籍列表
+		bookList = GlobalDataCacheForMemorySingleton.getInstance.getLocalBookList();
+		if (bookList != null) {
+			bookStoreAdapter = new BookStoreAdapter(MyFirstActivity.this, bookList);
+			bookstoreGridView.setAdapter(bookStoreAdapter);
+		}
+
+	}
+
+	private void showLoginQuiteByGlobalDataCache() {
+		// 从缓存中获取用户信息判断是否已经登录
+		LogonNetRespondBean logonNetRespondBean = GlobalDataCacheForMemorySingleton.getInstance.getPrivateAccountLogonNetRespondBean();
+		if (logonNetRespondBean == null) {
+			quiteLoginTextView.setVisibility(View.GONE);
+		} else {
+			quiteLoginTextView.setVisibility(View.VISIBLE);
+		}
+
+	}
+
+	private void showDialogQuite() {
+
+		AlertDialog.Builder builder = new AlertDialog.Builder(MyFirstActivity.this);
+		builder.create();
+		builder.setTitle("提示");
+		builder.setMessage("是否退出当前企业账号?");
+		builder.setPositiveButton("确认", new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				LogonNetRespondBean privateAccountLogonNetRespondBean = null;
+				GlobalDataCacheForMemorySingleton.getInstance.setPrivateAccountLogonNetRespondBean(privateAccountLogonNetRespondBean);
+				showLoginQuiteByGlobalDataCache();
+			}
+		}).setNegativeButton("取消", new DialogInterface.OnClickListener() {
+			@Override
+			public void onClick(DialogInterface dialog, int which) {
+				dialog.cancel();
+			}
+		});
+		builder.show();
+	}
+
+	@Override
+	protected void onDestroy() {
+		DebugLog.i(TAG, "onDestroy");
+
+		super.onDestroy();
+	}
+
+	@Override
+	protected void onPause() {
+		DebugLog.i(TAG, "onPause");
+		super.onPause();
+	}
+
+	@Override
+	protected void onRestart() {
+		DebugLog.i(TAG, "onRestart");
+		super.onRestart();
+	}
+
+	@Override
+	protected void onResume() {
+		DebugLog.i(TAG, "onResume");
+		showLoginQuiteByGlobalDataCache();
+		loadLocalBookList();
+		super.onResume();
+	}
+
+	@Override
+	protected void onStart() {
+		DebugLog.i(TAG, "onStart");
+		super.onStart();
+	}
+
+	@Override
+	protected void onStop() {
+		DebugLog.i(TAG, "onStop");
+		super.onStop();
+	}
+
+	private void testBookListInBookstores() {
+		BookListInBookstoresNetRequestBean netRequestBean = new BookListInBookstoresNetRequestBean();
+		DomainBeanNetworkEngineSingleton.getInstance.requestDomainProtocol(netRequestIndexForBookListInBookstores, netRequestBean, new IDomainBeanNetRespondListener() {
+
+			@Override
+			public void onFailure(NetErrorBean error) {
+
+			}
+
+			@Override
+			public void onSuccess(Object respondDomainBean) {
+				BookListInBookstoresNetRespondBean bookListInBookstoresNetRespondBean = (BookListInBookstoresNetRespondBean) respondDomainBean;
+				for (BookInfo bookInfo : bookListInBookstoresNetRespondBean.getBookInfoList()) {
+					LocalBook newBook = new LocalBook(bookInfo);
+					bookList.addBook(newBook);
+				}
+
+				bookStoreAdapter = new BookStoreAdapter(MyFirstActivity.this, bookList);
+				bookstoreGridView.setAdapter(bookStoreAdapter);
+			}
+		});
+	}
+
+	@Override
+	public boolean onKeyDown(int keyCode, KeyEvent event) {
+		if (keyCode == KeyEvent.KEYCODE_BACK) {
+			// 完整退出应用
+			ToolsFunctionForThisProgect.quitApp(MyFirstActivity.this);
+			return true;
+		}
+		return super.onKeyDown(keyCode, event);
+	}
+
+}

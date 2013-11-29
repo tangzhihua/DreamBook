@@ -1,0 +1,19 @@
+package cn.retech.domainbean_model.book_categories;
+
+public final class BookCategoriesDatabaseFieldsConstant {
+	private BookCategoriesDatabaseFieldsConstant() {
+
+	}
+ 
+
+	public static enum RespondBean {
+		//
+		categories,
+		//
+		category,
+		//
+		id,
+		//
+		name
+	}
+}

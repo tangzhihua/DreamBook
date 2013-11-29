@@ -1,0 +1,25 @@
+package cn.retech.domainbean_model.book_categories;
+
+public final class BookCategory {
+	private final int identifier;
+	private final String name;
+
+	public BookCategory(int identifier, String name) {
+		this.identifier = identifier;
+		this.name = name;
+	}
+
+	public int getIdentifier() {
+		return identifier;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	@Override
+	public String toString() {
+		return "BookCategory [identifier=" + identifier + ", name=" + name + "]";
+	}
+
+}

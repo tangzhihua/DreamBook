@@ -1,0 +1,5 @@
+package cn.retech.domainbean_model.booklist_in_bookstores;
+
+public final class BookListInBookstoresNetRequestBean {
+
+}

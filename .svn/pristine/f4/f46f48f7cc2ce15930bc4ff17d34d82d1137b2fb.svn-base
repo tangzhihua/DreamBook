@@ -1,0 +1,141 @@
+package cn.retech.custom_control;
+
+import java.util.List;
+
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.util.AttributeSet;
+import android.util.DisplayMetrics;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.View.OnClickListener;
+import android.widget.HorizontalScrollView;
+import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.TextView;
+import cn.retech.activity.R;
+import cn.retech.domainbean_model.book_categories.BookCategory;
+
+public class TabNavigation extends HorizontalScrollView implements OnClickListener {
+  public interface OnTabChangeListener {
+    /**
+     * 当导航标签切换时调用
+     * 
+     * @param v The view that was clicked.
+     */
+    void onTabChange(int postion);
+  }
+
+  private Context context;
+  private TextView tabCursor;
+  private LinearLayout tabNavigationLayout;
+  private int eachPageNum = 2;// 每页显示的按钮数
+  private int currentPageNum;// 当前显示页数
+  private int itemWidth;// 每个按钮宽度
+  private OnTabChangeListener onTabChangeListener;
+
+  public TabNavigation(Context context) {
+    super(context);
+
+    this.context = context;
+
+    init();
+  }
+
+  public TabNavigation(Context context, AttributeSet attrs) {
+    super(context, attrs);
+
+    this.context = context;
+
+    init();
+  }
+
+  @Override
+  public void onClick(View view) {
+    changeTab(view);
+
+    if (null != onTabChangeListener) {
+      onTabChangeListener.onTabChange(tabNavigationLayout.indexOfChild(view));
+    }
+  }
+
+  public void setCurrentItem(int postion) {
+    View view = tabNavigationLayout.getChildAt(postion);
+
+    changeTab(view);
+  }
+
+  /**
+   * @param onTabChangeListener the onTabChangeListener to set
+   */
+  public void setOnTabChangeListener(OnTabChangeListener onTabChangeListener) {
+    this.onTabChangeListener = onTabChangeListener;
+  }
+
+  public void showCategory(List<BookCategory> list) {
+    tabNavigationLayout.removeAllViews();
+
+    LayoutParams layoutParams = new LayoutParams(itemWidth, LayoutParams.MATCH_PARENT);
+    for (BookCategory bookCategory : list) {
+      RadioButton button = new RadioButton(context);
+      Bitmap nullBitmap = null;
+      button.setButtonDrawable(new BitmapDrawable(nullBitmap));
+      button.setTag(bookCategory);
+      button.setText(bookCategory.getName());
+      button.setGravity(Gravity.CENTER);
+      button.setOnClickListener(this);
+
+      tabNavigationLayout.addView(button, layoutParams);
+    }
+
+    tabCursor.setX(0);
+    tabCursor.setWidth(itemWidth);
+  }
+
+  private void changeTab(View view) {
+    tabCursor.animate().x(view.getX());
+    if (context instanceof ICustomControlDelegate) {
+      ICustomControlDelegate iCustomControlDelegate = (ICustomControlDelegate) context;
+      iCustomControlDelegate.customControlOnAction(view, ControlOnActionEnum.CHANGE_FRAGMENT);
+    }
+
+    /**
+     * 页数算法:根据View在Layout里的index值算出其所在页数,将此页数与屏幕显示的当前页数对比,判断是将HorizontalScrollView进行左滑动还是右滑动操作,
+     */
+    int index = tabNavigationLayout.indexOfChild(view) + 1;
+    int itemPageNum = index % eachPageNum == 0 ? index / eachPageNum : index / eachPageNum + 1;
+
+    // 所在页数>当前页数,则右滑动并且当前页数++
+    if (itemPageNum > currentPageNum) {
+      while (itemPageNum > currentPageNum) {
+        this.pageScroll(View.FOCUS_RIGHT);
+        currentPageNum++;
+      }
+    }
+    // 所在页数<当前页数,则左滑动并且当前页数--
+    else if (itemPageNum < currentPageNum) {
+      while (itemPageNum < currentPageNum) {
+        this.pageScroll(View.FOCUS_LEFT);
+        currentPageNum--;
+      }
+    }
+  }
+
+  private void init() {
+    this.setHorizontalScrollBarEnabled(false);
+
+    LayoutInflater layoutInflater = (LayoutInflater) context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+    layoutInflater.inflate(R.layout.tab_navigation_layout, this);
+
+    currentPageNum = 1;
+
+    DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+    itemWidth = displayMetrics.widthPixels / eachPageNum;
+
+    tabNavigationLayout = (LinearLayout) findViewById(R.id.tab_navigation_radioGroup);
+
+    tabCursor = (TextView) findViewById(R.id.tab_cursor_textView);
+  }
+}

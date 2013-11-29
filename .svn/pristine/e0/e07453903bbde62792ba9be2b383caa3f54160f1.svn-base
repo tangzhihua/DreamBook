@@ -1,0 +1,252 @@
+package cn.retech.activity;
+
+import android.app.Activity;
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemLongClickListener;
+import android.widget.GridView;
+import android.widget.TextView;
+import android.widget.Toast;
+import cn.retech.adapter.BookStoreAdapter;
+import cn.retech.domainbean_model.book_categories.BookCategoriesNetRequestBean;
+import cn.retech.domainbean_model.booklist_in_bookstores.BookInfo;
+import cn.retech.domainbean_model.booklist_in_bookstores.BookListInBookstoresNetRequestBean;
+import cn.retech.domainbean_model.booklist_in_bookstores.BookListInBookstoresNetRespondBean;
+import cn.retech.domainbean_model.get_book_download_url.GetBookDownloadUrlNetRequestBean;
+import cn.retech.domainbean_model.get_book_download_url.GetBookDownloadUrlNetRespondBean;
+import cn.retech.domainbean_model.local_book_list.LocalBook;
+import cn.retech.domainbean_model.local_book_list.LocalBookList;
+import cn.retech.domainbean_model.login.LogonNetRequestBean;
+import cn.retech.domainbean_model.login.LogonNetRespondBean;
+import cn.retech.global_data_cache.GlobalDataCacheForMemorySingleton;
+import cn.retech.my_domainbean_engine.domainbean_network_engine_singleton.DomainBeanNetworkEngineSingleton;
+import cn.retech.my_domainbean_engine.domainbean_network_engine_singleton.DomainBeanNetworkEngineSingleton.NetRequestIndex;
+import cn.retech.my_domainbean_engine.domainbean_network_engine_singleton.IDomainBeanNetRespondListener;
+import cn.retech.my_domainbean_engine.net_error_handle.NetErrorBean;
+import cn.retech.toolutils.DebugLog;
+
+public class MyFirstActivity extends Activity {
+	private final String TAG = this.getClass().getSimpleName();
+
+	private NetRequestIndex netRequestIndexForLogin = new NetRequestIndex();
+	private NetRequestIndex netRequestIndexForBookCategories = new NetRequestIndex();
+	private NetRequestIndex netRequestIndexForBookListInBookstores = new NetRequestIndex();
+	private NetRequestIndex netRequestIndexForGetBookDownloadUrl = new NetRequestIndex();
+
+	private TextView publicBookstoreTextView;
+	private TextView privateBookstoreTextView;
+	private GridView bookstoreGridView;
+
+	// 书城图书列表(完成本地图书列表和从服务器新获取的图书列表进行了数据同步)
+	private LocalBookList bookList = new LocalBookList();
+
+	private BookStoreAdapter bookStoreAdapter;
+
+	private void requestBookDownlaodUrl(final String contentID, final LogonNetRespondBean bindAccount) {
+		GetBookDownloadUrlNetRequestBean netRequestBean = new GetBookDownloadUrlNetRequestBean(contentID, bindAccount);
+
+		DomainBeanNetworkEngineSingleton.getInstance.requestDomainProtocol(netRequestIndexForGetBookDownloadUrl, netRequestBean, new IDomainBeanNetRespondListener() {
+
+			@Override
+			public void onFailure(NetErrorBean error) {
+				DebugLog.e(TAG, error.toString());
+			}
+
+			@Override
+			public void onSuccess(Object respondDomainBean) {
+				GetBookDownloadUrlNetRespondBean getBookDownloadUrlNetRespondBean = (GetBookDownloadUrlNetRespondBean) respondDomainBean;
+				LocalBook book = bookList.bookByContentID(contentID);
+				book.startDownloadBookWithURLString(getBookDownloadUrlNetRespondBean.getBookDownloadUrl());
+			}
+		});
+	}
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		DebugLog.i(TAG, "onCreate");
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_my_first);
+
+		publicBookstoreTextView = (TextView) findViewById(R.id.public_bookstore_textView);
+		publicBookstoreTextView.setOnClickListener(new View.OnClickListener() {
+
+			@Override
+			public void onClick(View v) {
+				Intent intent = new Intent();
+				intent.setClass(MyFirstActivity.this, PubliceBookStoreActivity.class);
+				startActivity(intent);
+			}
+		});
+
+		privateBookstoreTextView = (TextView) findViewById(R.id.private_bookstore_textView);
+
+		bookstoreGridView = (GridView) findViewById(R.id.bookstore_gridView);
+		bookstoreGridView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+
+			@Override
+			public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+				final LocalBook book = bookList.get(position);
+				switch (book.getBookStateEnum()) {
+				case kBookStateEnum_Unpaid:// 未付费(只针对收费的书籍, 如果是免费的书籍, 会直接到下一个状态.
+
+					break;
+				case kBookStateEnum_Paiding:// 支付中....
+
+					break;
+				case kBookStateEnum_Paid: // 已付费(已付费的书籍可以直接下载了)
+					final LogonNetRespondBean bindAccount = new LogonNetRespondBean();
+					bindAccount.setUsername("public");
+					bindAccount.setPassword("pwpublic");
+					book.setBindAccount(bindAccount);
+					requestBookDownlaodUrl(book.getBookInfo().getContent_id(), bindAccount);
+					break;
+				case kBookStateEnum_Downloading:// 正在下载中...
+					book.stopDownloadBook();
+
+					break;
+				case kBookStateEnum_Pause:// 暂停(也就是未下载完成, 可以进行断电续传)
+					requestBookDownlaodUrl(book.getBookInfo().getContent_id(), book.getBindAccount());
+					break;
+				case kBookStateEnum_NotInstalled:// 未安装(已经下载完成, 还未完成安装)
+
+					break;
+				case kBookStateEnum_Unziping:// 解压书籍zip资源包中....
+
+					break;
+				case kBookStateEnum_Installed:// 已安装(已经解压开的书籍, 可以正常阅读了)
+
+					break;
+				case kBookStateEnum_Update:// 有可以更新的内容
+
+					break;
+				default:
+
+					break;
+				}
+			}
+
+		});
+		bookstoreGridView.setOnItemLongClickListener(new OnItemLongClickListener() {
+
+			@Override
+			public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+
+				return false;
+			}
+		});
+
+		testLogon();
+
+	}
+
+	@Override
+	protected void onDestroy() {
+		DebugLog.i(TAG, "onDestroy");
+
+		super.onDestroy();
+	}
+
+	@Override
+	protected void onPause() {
+		DebugLog.i(TAG, "onPause");
+		super.onPause();
+	}
+
+	@Override
+	protected void onRestart() {
+		DebugLog.i(TAG, "onRestart");
+		super.onRestart();
+	}
+
+	@Override
+	protected void onResume() {
+		DebugLog.i(TAG, "onResume");
+		super.onResume();
+	}
+
+	@Override
+	protected void onStart() {
+		DebugLog.i(TAG, "onStart");
+		super.onStart();
+	}
+
+	@Override
+	protected void onStop() {
+		DebugLog.i(TAG, "onStop");
+		super.onStop();
+	}
+
+	private void testBookCategories() {
+		BookCategoriesNetRequestBean netRequestBean = new BookCategoriesNetRequestBean();
+		DomainBeanNetworkEngineSingleton.getInstance.requestDomainProtocol(netRequestIndexForBookCategories, netRequestBean, new IDomainBeanNetRespondListener() {
+			@Override
+			public void onSuccess(Object respondDomainBean) {
+
+			}
+
+			@Override
+			public void onFailure(NetErrorBean error) {
+
+			}
+
+		});
+	}
+
+	private void testBookListInBookstores() {
+		BookListInBookstoresNetRequestBean netRequestBean = new BookListInBookstoresNetRequestBean();
+		DomainBeanNetworkEngineSingleton.getInstance.requestDomainProtocol(netRequestIndexForBookListInBookstores, netRequestBean, new IDomainBeanNetRespondListener() {
+
+			@Override
+			public void onFailure(NetErrorBean error) {
+
+			}
+
+			@Override
+			public void onSuccess(Object respondDomainBean) {
+				BookListInBookstoresNetRespondBean bookListInBookstoresNetRespondBean = (BookListInBookstoresNetRespondBean) respondDomainBean;
+				for (BookInfo bookInfo : bookListInBookstoresNetRespondBean.getBookInfoList()) {
+					LocalBook newBook = new LocalBook(bookInfo);
+					bookList.addBook(newBook);
+				}
+
+				bookStoreAdapter = new BookStoreAdapter(MyFirstActivity.this, bookList);
+				bookstoreGridView.setAdapter(bookStoreAdapter);
+			}
+		});
+	}
+
+	private void testLogon() {
+		//
+		GlobalDataCacheForMemorySingleton.getInstance.setUsernameForLastSuccessfulLogon("public");
+		GlobalDataCacheForMemorySingleton.getInstance.setPasswordForLastSuccessfulLogon("pwpublic");
+
+		LogonNetRequestBean netRequestBean = new LogonNetRequestBean.Builder("public", "pwpublic").builder();
+		DomainBeanNetworkEngineSingleton.getInstance.requestDomainProtocol(netRequestIndexForLogin, netRequestBean, new IDomainBeanNetRespondListener() {
+			@Override
+			public void onFailure(NetErrorBean error) {
+				DebugLog.i(TAG, error.toString());
+
+			}
+
+			@Override
+			public void onSuccess(Object respondDomainBean) {
+
+				// testBookCategories();
+
+				//
+
+				testBookListInBookstores();
+
+				//
+
+				// testGetBookDownloadUrl();
+
+			}
+
+		});
+
+		// DomainBeanNetworkEngineSingleton.getInstance.cancelNetRequestByRequestIndex(netRequestIndexForLogin);
+	}
+}

@@ -1,0 +1,14 @@
+package cn.retech.activity;
+
+/**
+ * Fragment部分操作功能抽象
+ * 
+ * @author Administrator
+ * 
+ */
+public interface IFragmentOptions {
+  /**
+   * 刷新当前页面
+   */
+  public void refresh();
+}

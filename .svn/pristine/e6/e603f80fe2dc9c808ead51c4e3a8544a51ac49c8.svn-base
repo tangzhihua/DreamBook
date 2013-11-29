@@ -1,0 +1,25 @@
+package cn.retech.custom_control;
+
+import android.content.Context;
+import android.util.AttributeSet;
+import android.view.LayoutInflater;
+import android.widget.RelativeLayout;
+import cn.retech.activity.R;
+
+public class BookCell extends RelativeLayout {
+
+	public BookCell(Context context, AttributeSet attrs) {
+		super(context, attrs);
+	}
+
+	public BookCell(Context context) {
+		super(context);
+		LayoutInflater mInflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+		mInflater.inflate(R.layout.bookcell_layout, this, true);
+	}
+
+	private void initLayout() {
+
+	}
+
+}

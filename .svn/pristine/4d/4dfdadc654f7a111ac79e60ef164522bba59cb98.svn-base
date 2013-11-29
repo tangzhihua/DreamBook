@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="match_parent"
+    android:orientation="horizontal" >
+
+    <LinearLayout
+        android:id="@+id/tab_navigation_radioGroup"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:orientation="horizontal" />
+
+    <TextView
+        android:id="@+id/tab_cursor_textView"
+        android:layout_width="wrap_content"
+        android:layout_height="3dp"
+        android:layout_alignParentBottom="true"
+        android:background="@android:color/holo_red_light" />
+
+</RelativeLayout>

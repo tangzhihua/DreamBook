@@ -1,0 +1,191 @@
+package cn.retech.activity;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
+
+import android.app.Activity;
+import android.content.DialogInterface;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.os.Environment;
+import android.util.DisplayMetrics;
+import android.widget.ImageView;
+import cn.retech.toolutils.DebugLog;
+import cn.retech.toolutils.SimpleProgressDialog;
+
+public class SecondActivity extends Activity {
+	private final String TAG = this.getClass().getSimpleName();
+	private ImageView imageView;
+	private Bitmap bmp;
+
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		DebugLog.i(TAG, "onCreate");
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_second);
+
+		imageView = (ImageView) findViewById(R.id.imageView1);
+
+		new InitImageBitmapTask().execute("http://drive.retechcorp.com:8880/serve?id=utk23en7xf7qs2ztl5668u27mvycn9hrf2ashh7uxq6dn78q8bawhirthysmkx7g6ndc6b2yz9bzt3k0ofyrbi1pdru98mux0juf5mgbxukkbzo01pa");
+
+		SimpleProgressDialog.show(this, new DialogInterface.OnCancelListener() {
+
+			@Override
+			public void onCancel(DialogInterface dialog) {
+				// TODO Auto-generated method stub
+
+			}
+		});
+	}
+
+	@Override
+	protected void onStart() {
+		DebugLog.i(TAG, "onStart");
+		super.onStart();
+	}
+
+	@Override
+	protected void onRestart() {
+		DebugLog.i(TAG, "onRestart");
+		super.onRestart();
+	}
+
+	@Override
+	protected void onResume() {
+		DebugLog.i(TAG, "onResume");
+		super.onResume();
+	}
+
+	@Override
+	protected void onPause() {
+		DebugLog.i(TAG, "onPause");
+		super.onPause();
+	}
+
+	@Override
+	protected void onStop() {
+		DebugLog.i(TAG, "onStop");
+		super.onStop();
+
+		imageView.setImageBitmap(null);
+		bmp.recycle();
+		bmp = null;
+
+		SimpleProgressDialog.resetByThisContext(this);
+	}
+
+	@Override
+	protected void onDestroy() {
+		DebugLog.i(TAG, "onDestroy");
+
+		super.onDestroy();
+	}
+
+	private class InitImageBitmapTask extends AsyncTask<String, Void, Void> {
+		@Override
+		protected Void doInBackground(String... params) {
+
+			InputStream httpInputStream = null;
+			File file = null;
+			FileOutputStream fileOutputStream = null;
+
+			try {
+
+				URLConnection connection = (new URL(params[0]).openConnection());
+				connection.setDoInput(true);
+				connection.connect();
+
+				file = new File(Environment.getExternalStorageDirectory() + "/" + "tmpimage");
+				if (file.exists()) {
+					file.delete();
+				}
+
+				fileOutputStream = new FileOutputStream(file);
+				byte[] buffer = new byte[1024];
+				int byteCount = -1;
+
+				httpInputStream = connection.getInputStream();
+				while ((byteCount = httpInputStream.read(buffer)) != -1) {
+					fileOutputStream.write(buffer, 0, byteCount);
+				}
+
+			} catch (IOException e) {
+				e.printStackTrace();
+			} finally {
+				if (fileOutputStream != null) {
+					try {
+						fileOutputStream.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					fileOutputStream = null;
+				}
+
+				if (httpInputStream != null) {
+					try {
+						httpInputStream.close();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					httpInputStream = null;
+				}
+			}
+
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void result) {
+			setImage();
+
+			SimpleProgressDialog.dismiss(SecondActivity.this);
+		}
+
+	}
+
+	/**
+	 * @param bitmap
+	 *          : 本地或者服务器上的图片资源,若为null,则加载load_picture_error图片. 1.用Matrix进行处理.
+	 *          2.根据宽度的比例来进行缩放处理.
+	 */
+	private void setImage() {
+
+		BitmapFactory.Options opt = new BitmapFactory.Options();
+		// 这个isjustdecodebounds很重要
+		opt.inJustDecodeBounds = true;
+		BitmapFactory.decodeFile(Environment.getExternalStorageDirectory() + "/" + "tmpimage", opt);
+
+		// 获取到这个图片的原始宽度和高度
+		int picWidth = opt.outWidth;
+		int picHeight = opt.outHeight;
+
+		DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+		int screenWidth = displayMetrics.widthPixels;
+		int screenHeight = displayMetrics.heightPixels;
+
+		// 若图片宽度大于屏幕宽度,则按照比例缩放,否则就按原大小处理
+		if (picWidth > picHeight) {
+			if (picWidth > screenWidth)
+				opt.inSampleSize = picWidth / screenWidth;
+		} else {
+			if (picHeight > screenHeight)
+
+				opt.inSampleSize = picHeight / screenHeight;
+		}
+
+		// 这次再真正地生成一个有像素的，经过缩放了的bitmap
+		opt.inJustDecodeBounds = false;
+		bmp = BitmapFactory.decodeFile(Environment.getExternalStorageDirectory() + "/" + "tmpimage", opt);
+
+		imageView.setImageBitmap(bmp);
+	}
+
+}

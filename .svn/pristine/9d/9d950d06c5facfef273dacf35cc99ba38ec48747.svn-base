@@ -1,0 +1,21 @@
+package cn.retech.custom_control;
+
+/**
+ * 按钮操作类型枚举
+ * 
+ * @author Administrator
+ */
+public enum ControlOnActionEnum {
+  /**
+   * ActionBar的退回按钮
+   */
+  BACK_TO_MYBOOKSHLF,
+  /**
+   * ActionBar的刷新按钮
+   */
+  REFRESH,
+  /**
+   * Tab导航切换界面
+   */
+  CHANGE_FRAGMENT
+}
